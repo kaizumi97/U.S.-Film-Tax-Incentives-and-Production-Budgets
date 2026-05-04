@@ -1,41 +1,49 @@
 ##### Setting Work Directory & Loading Packages ####
 main_dir <- getwd()
 
-required_packages <- c(
-  # Core Data Manipulation and Processing
-  "dplyr", "tidyr", "purrr",
-  
-  # String Manipulation
-  "stringr",
-  
-  # Date and Time Handling
-  "lubridate",
-  
-  # Data Visualization
-  "ggplot2", "viridis",
-  
-  # Data Import/Export
-  "readr",
-  
-  # Statistical and Modeling Tools
-  "plm", "broom", "synthdid", "scales", 
-  "kableExtra", "knitr", "fixest", "tibble",
-  "did", "doParallel", "forcats", "reshape2",
-  
-  # Additional Libraries
-  "patchwork", "curl", "countrycode"
+
+cran_packages <- c(
+  # Core data manipulation
+  "dplyr", "tidyr", "purrr", "tibble", "forcats", "stringr", "lubridate",
+  # Visualization
+  "ggplot2", "viridis", "patchwork", "scales",
+  # I/O
+  "readr", "curl",
+  # Modeling and causal inference
+  "plm", "fixest", "broom", "did", "doParallel",
+  # Reporting
+  "knitr", "kableExtra",
+  # Misc
+  "countrycode"
 )
 
-# Loop to check for and install missing packages
-for (pkg in required_packages) {
-  if (!require(pkg, character.only = TRUE)) {
-    cat(paste("Installing missing package:", pkg, "\n"))
-    install.packages(pkg, dependencies = TRUE)
+# Synthetic DiD package is not on CRAN; install from GitHub on first run.
+github_packages <- c(synthdid = "synth-inference/synthdid")
+
+install_if_missing <- function(pkgs) {
+  missing <- pkgs[!vapply(pkgs, requireNamespace, logical(1), quietly = TRUE)]
+  if (length(missing)) {
+    message("Installing missing packages: ", paste(missing, collapse = ", "))
+    install.packages(missing, dependencies = TRUE)
   }
-  library(pkg, character.only = TRUE)  # Load the package
 }
 
-rm(pkg,required_packages)
+install_if_missing(cran_packages)
+
+for (pkg in names(github_packages)) {
+  if (!requireNamespace(pkg, quietly = TRUE)) {
+    if (!requireNamespace("remotes", quietly = TRUE)) install.packages("remotes")
+    message("Installing ", pkg, " from GitHub: ", github_packages[[pkg]])
+    remotes::install_github(github_packages[[pkg]])
+  }
+}
+
+invisible(lapply(
+  c(cran_packages, names(github_packages)),
+  function(p) suppressPackageStartupMessages(library(p, character.only = TRUE))
+))
+
+rm(main_dir, cran_packages, github_packages, install_if_missing, pkg)
 
 #### Gathering Data  ####
 # It is important that everything is in the same folder as this will determine whether your data is there
